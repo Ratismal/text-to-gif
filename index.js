@@ -54,6 +54,11 @@ parser.addArgument(['-m', '--margin'], {
     defaultValue: 2,
     type: Number
 });
+parser.addArgument(['-a', '--alternate'], {
+    help: 'Alternate the background and fill colors',
+    defaultValue: false,
+    type: Boolean
+});
 
 
 const args = parser.parseArgs();
@@ -84,14 +89,19 @@ async function main() {
     let max = words.length;
     let i = 0;
     let loading = ['\\', '|', '/', '-'];
+    let flip = false;
+
     for (const word of words) {
         process.stdout.write(`${loading[i % 4]} Generating | ${i + 1}/${max} (${Math.floor((i + 1) / max * 10000) / 100}%) | ${word}                    \r`);
         i++;
         let img = im().command('convert');
         img.out('-size').out(`${width * args.columns * 0.80}x${height * args.rows * 0.50}`);
-        img.out('-background').out(args.background);
-        img.out('-fill').out(args.fill);
+        img.out('-background').out(flip ? args.background : args.fill);
+        img.out('-fill').out(flip ? args.fill : args.background);
+        if (args.alternate)
+            flip = !flip;
         img.out('-gravity').out('Center');
+        img.out('-font').out('Comic-Sans-MS');
         // img.out('-pointsize').out(`100`);
         // img.out('-annotate').out('0').out(word);
         img.out(`caption: ${word}`);
