@@ -58,8 +58,6 @@ parser.addArgument(['-m', '--margin'], {
 
 const args = parser.parseArgs();
 
-console.log(args);
-
 async function main() {
     let input = path.join(process.cwd(), args.input);
 
@@ -67,7 +65,6 @@ async function main() {
 
     let data = fs.readFileSync(input, { encoding: 'utf8' });
     let words = data.split(/\s+/);
-    console.log(data);
     let height = args.size, width = args.size, margin = args.margin;
 
     let encoders = [];
@@ -84,8 +81,12 @@ async function main() {
         }
         encoders.push(row);
     }
+    let max = words.length;
+    let i = 0;
+    let loading = ['\\', '|', '/', '-'];
     for (const word of words) {
-        console.log('Working on', word);
+        process.stdout.write(`${loading[i % 4]} Generating | ${i + 1}/${max} (${Math.floor((i + 1) / max * 10000) / 100}%) | ${word}                    \r`);
+        i++;
         let img = im().command('convert');
         img.out('-size').out(`${width * args.columns * 0.80}x${height * args.rows * 0.50}`);
         img.out('-background').out(args.background);
