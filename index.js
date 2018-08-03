@@ -59,9 +59,38 @@ parser.addArgument(['-a', '--alternate'], {
     defaultValue: false,
     type: Boolean
 });
+parser.addArgument(['-t', '--trim'], {
+    help: 'Trims out a random set of words, with words near the middle being more likely to be deleted. Useful if you have a lot of words.',
+    defaultValue: false,
+    type: Boolean
+});
+parser.addArgument(['-S', '--speed'], {
+    help: 'Causes frames to speed up near the middle, going to a maximum of 1/4 the delay',
+    defaultValue: false,
+    type: Boolean
+});
 
 
 const args = parser.parseArgs();
+
+function trimWords(arr) {
+    let words = [];
+
+    let length = arr.length, half = Math.ceil(length / 2);
+    let i = half * -1;
+    console.log(length, half, i);
+    for (const word of arr) {
+        if (/^[^\w\d]+$/.test(word)) continue; // skip words that are only non-letters/numbers
+
+        let weight = half - Math.abs(i);
+        let seed = Math.floor(Math.random() * half * 1.5);
+        if (seed > weight) words.push(word);
+        // console.log(word, weight);
+        i++;
+    }
+
+    return words;
+}
 
 async function main() {
     let input = path.join(process.cwd(), args.input);
@@ -81,17 +110,47 @@ async function main() {
             encoder.start();
             encoder.setRepeat(0);
             encoder.setDelay(args.delay);
-            encoder.setQuality(10);
+            encoder.setQuality(20);
             row.push(encoder);
         }
         encoders.push(row);
+    }
+    if (args.trim) {
+        words = trimWords(words);
+    }
+    let maxDelay = args.delay;
+    let minDelay = args.delay;
+    if (args.speed) {
+        minDelay = args.delay / 4;
     }
     let max = words.length;
     let i = 0;
     let loading = ['\\', '|', '/', '-'];
     let flip = false;
 
+    let length = words.length, half = Math.ceil(length / 2);
+    let ii = half * -1;
+    let maxE = half ** 2;
+    let baseDelay = maxDelay - minDelay;
+    let speeds = [];
     for (const word of words) {
+        let d = maxDelay;
+        if (args.speed) {
+            let v = Math.abs(ii) * 8;
+            let p = v / (half);
+            d = (p * baseDelay) - minDelay * 20;
+
+            // let e = ((ii ** 2));
+            // let r = maxE / e;
+            // let f = ((maxDelay / minDelay) * r);
+            // d = ((minDelay - f) * (maxDelay / minDelay));
+            d = Math.max(minDelay, Math.min(maxDelay, d));
+            // console.log(`${maxE}/${e.toString().padEnd(4, ' ')}=${r.toString().padEnd(16, ' ')}\t${maxDelay}/${minDelay}=${minDelay / maxDelay}\t${f.toString().padEnd(16, ' ')}\t${d.toString().padEnd(16, ' ')}`);
+            ii++;
+            speeds.push(d);
+
+            // continue;
+        }
         process.stdout.write(`${loading[i % 4]} Generating | ${i + 1}/${max} (${Math.floor((i + 1) / max * 10000) / 100}%) | ${word}                    \r`);
         i++;
         let img = im().command('convert');
@@ -113,6 +172,8 @@ async function main() {
         for (let y = 0; y < args.rows; y++) {
             for (let x = 0; x < args.columns; x++) {
                 let encoder = encoders[y][x];
+                if (args.speed)
+                    encoder.setDelay(d);
 
                 let i = new Jimp(width - margin, height - margin, 0x0);
                 i.composite(jimg, x * -width, y * -height);
@@ -120,6 +181,8 @@ async function main() {
             }
         }
     }
+    fs.writeFileSync('output', JSON.stringify(speeds, null, 2));
+    // return;
     for (let y = 0; y < args.rows; y++) {
         for (let x = 0; x < args.columns; x++) {
             encoders[y][x].finish();
