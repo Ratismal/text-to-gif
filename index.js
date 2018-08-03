@@ -83,7 +83,7 @@ function trimWords(arr) {
         if (/^[^\w\d]+$/.test(word)) continue; // skip words that are only non-letters/numbers
 
         let weight = half - Math.abs(i);
-        let seed = Math.floor(Math.random() * half * 1.5);
+        let seed = Math.floor(Math.random() * half);
         if (seed > weight) words.push(word);
         // console.log(word, weight);
         i++;
@@ -154,7 +154,7 @@ async function main() {
         process.stdout.write(`${loading[i % 4]} Generating | ${i + 1}/${max} (${Math.floor((i + 1) / max * 10000) / 100}%) | ${word}                    \r`);
         i++;
         let img = im().command('convert');
-        img.out('-size').out(`${width * args.columns * 0.80}x${height * args.rows * 0.50}`);
+        img.out('-size').out(`${width * args.columns * 0.80}x${height * args.rows * 0.75}`);
         img.out('-background').out(flip ? args.background : args.fill);
         img.out('-fill').out(flip ? args.fill : args.background);
         if (args.alternate)
